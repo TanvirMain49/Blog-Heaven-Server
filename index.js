@@ -1,6 +1,6 @@
 require('dotenv').config()
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
 const port = process.env.PORT || 4000;
 
@@ -44,6 +44,12 @@ async function run() {
             const blog = req.body;
             console.log(blog);
             const result = await blogsCollection.insertOne(blog);
+            res.send(result);
+        })
+        app.get('/all-blogs/:id', async(req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await blogsCollection.findOne(query);
             res.send(result);
         })
 
