@@ -40,18 +40,29 @@ async function run() {
             const result = await blogsCollection.find().toArray();
             res.send(result);
         })
-
-        app.post('/blogs', async (req, res) => {
-            const blog = req.body;
-            const result = await blogsCollection.insertOne(blog);
-            res.send(result);
-        })
         app.get('/all-blogs/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await blogsCollection.findOne(query);
             res.send(result);
         })
+        app.post('/blogs', async (req, res) => {
+            const blog = req.body;
+            const result = await blogsCollection.insertOne(blog);
+            res.send(result);
+        })
+        app.put('/update-blogs/:id', async(req, res)=>{
+            const id = req.params.id;
+            const updateBlog = req.body; 
+            const filter = {_id : new ObjectId(id)};
+            const update = {
+                $set: updateBlog
+            }
+            const option = {upsert: true};
+            const result = await blogsCollection.updateOne(filter, update, option);
+            res.send(result);
+        })
+
 
 //--------------------------------------For Comment section api---------------------------------
         app.get('/blog-Comment/:id', async (req, res) => {
