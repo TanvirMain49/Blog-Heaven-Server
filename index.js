@@ -32,8 +32,9 @@ async function run() {
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
-        // blog related apis
+        // all api collections
         const blogsCollection = client.db('Blogs_Web').collection('Blogs');
+        const commentsCollection = client.db('Blogs_Web').collection('Comments');
 
         app.get('/all-blogs', async(req, res)=>{
             const result = await blogsCollection.find().toArray();
@@ -50,6 +51,14 @@ async function run() {
             const id = req.params.id;
             const query = {_id: new ObjectId(id)};
             const result = await blogsCollection.findOne(query);
+            res.send(result);
+        })
+
+//--------------------------------------For Comment section api---------------------------------
+        app.post('/blog-Comment', async(req, res)=>{
+            const comment = req.body;
+            console.log(comment);
+            const result = await commentsCollection.insertOne(comment);
             res.send(result);
         })
 
