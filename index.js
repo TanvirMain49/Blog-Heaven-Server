@@ -36,28 +36,34 @@ async function run() {
         const blogsCollection = client.db('Blogs_Web').collection('Blogs');
         const commentsCollection = client.db('Blogs_Web').collection('Comments');
 
-        app.get('/all-blogs', async(req, res)=>{
+        app.get('/all-blogs', async (req, res) => {
             const result = await blogsCollection.find().toArray();
             res.send(result);
         })
 
         app.post('/blogs', async (req, res) => {
             const blog = req.body;
-            console.log(blog);
             const result = await blogsCollection.insertOne(blog);
             res.send(result);
         })
-        app.get('/all-blogs/:id', async(req, res)=>{
+        app.get('/all-blogs/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await blogsCollection.findOne(query);
             res.send(result);
         })
 
 //--------------------------------------For Comment section api---------------------------------
-        app.post('/blog-Comment', async(req, res)=>{
+        app.get('/blog-Comment/:id', async (req, res) => {
+            const commentId = req.params.id;
+            const filter = {commentId: commentId}
+            const result = await commentsCollection.find(filter).toArray();
+            // console.log(result);
+            res.send(result);
+        })
+
+        app.post('/blog-Comment', async (req, res) => {
             const comment = req.body;
-            console.log(comment);
             const result = await commentsCollection.insertOne(comment);
             res.send(result);
         })
