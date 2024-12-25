@@ -35,6 +35,7 @@ async function run() {
         // all api collections
         const blogsCollection = client.db('Blogs_Web').collection('Blogs');
         const commentsCollection = client.db('Blogs_Web').collection('Comments');
+        const wishListCollection = client.db('Blogs_Web').collection('wishList');
 
         app.get('/all-blogs', async (req, res) => {
             const result = await blogsCollection.find().toArray();
@@ -76,6 +77,24 @@ async function run() {
         app.post('/blog-Comment', async (req, res) => {
             const comment = req.body;
             const result = await commentsCollection.insertOne(comment);
+            res.send(result);
+        })
+// -------------------------------------------WishList----------------------------------------
+
+        app.post('/wishList', async(req, res)=>{
+            const wishList = req.body;
+            const query = {userEmail: wishList.userEmail, blog_id: wishList.blog_id}
+            console.log(query);
+            const alreadyExit = await wishListCollection.findOne(query);
+            if(alreadyExit){
+                return res.status(400).send('Already Exist');
+            }
+            const result = await wishListCollection.insertOne(wishList);
+            res.send(result);
+        })
+
+        app.get('/wishList', async(req, res)=>{
+            const result = await wishListCollection.find().toArray()
             res.send(result);
         })
 
