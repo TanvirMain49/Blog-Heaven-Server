@@ -44,9 +44,9 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
-        // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.connect();
+        // // Send a ping to confirm a successful connection
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         //jwt webToken
@@ -80,6 +80,7 @@ async function run() {
         app.get('/all-blogs', async (req, res) => {
             const filter = req.query.filter;
             const search = req.query.search;
+            console.log(search);
             let query = {
                 title: {
                     $regex: search, $options: 'i'
@@ -169,7 +170,7 @@ async function run() {
             const commentId = req.params.id;
             const filter = { commentId: commentId }
             const result = await commentsCollection.find(filter).toArray();
-            // console.log(result);
+
             res.send(result);
         })
 
