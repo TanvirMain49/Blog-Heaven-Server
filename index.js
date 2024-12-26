@@ -53,7 +53,6 @@ async function run() {
         app.post('/jwt', async (req, res) => {
             const email = req.body;
             const token = jwt.sign(email, (process.env.JWT_TOKEN), { expiresIn: '365d' })
-            console.log(token);
             res
                 .cookie('token', token, {
                     httpOnly: true,
@@ -79,15 +78,69 @@ async function run() {
         const wishListCollection = client.db('Blogs_Web').collection('wishList');
 
         app.get('/all-blogs', async (req, res) => {
-            const result = await blogsCollection.find().toArray();
+            const filter = req.query.filter;
+            const search = req.query.search;
+            let query = {
+                title: {
+                    $regex: search, $options: 'i'
+                }
+            };
+            if (filter ) {
+                query.category = filter;
+            }
+            const result = await blogsCollection.find(query).toArray();
+            res.send(result);
+        })
+        app.get('/all-blogs-home', async (req, res) => {
+            const result = await blogsCollection.find().limit(6).toArray();
             res.send(result);
         })
         app.get('/all-blogs-table', async (req, res) => {
-            const result = await blogsCollection.find().limit(10).toArray();
+            const result = await blogsCollection.aggregate([
+                {
+                    $addFields:{
+                        descriptionLength: {$strLenCP: "$longDescription"}
+                    }
+                },
+                {
+                    $sort:{
+                        descriptionLength: -1
+                    }
+                },
+                {
+                    $limit: 10
+                },
+                {
+                    $project: {
+                        descriptionLength: 0 // Exclude the temporary field
+                    }
+                }
+            ]).toArray()
+            res.send(result);
+        })
+        app.get('/all-blogsRecommended', async (req, res) => {
+            const result = await blogsCollection.aggregate([
+                {
+                    $addFields:{
+                        descriptionLength: {$strLenCP: '$longDescription'}
+                    }
+                },
+                {
+                    $sort: {descriptionLength: -1}
+                },
+                {
+                    $limit : 4
+                },
+                {
+                    $project:{
+                        descriptionLength: 0
+                    }
+                }
+            ]).toArray();
             res.send(result);
         })
 
-        app.get('/all-blogs/:id',  async (req, res) => {
+        app.get('/all-blogs/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await blogsCollection.findOne(query);
@@ -98,7 +151,7 @@ async function run() {
             const result = await blogsCollection.insertOne(blog);
             res.send(result);
         })
-        app.put('/update-blogs/:id',  async (req, res) => {
+        app.put('/update-blogs/:id', async (req, res) => {
             const id = req.params.id;
             const updateBlog = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -111,8 +164,8 @@ async function run() {
         })
 
 
-        //--------------------------------------For Comment section api---------------------------------
-        app.get('/blog-Comment/:id',  async (req, res) => {
+//--------------------------------------For Comment section api---------------------------------
+        app.get('/blog-Comment/:id', async (req, res) => {
             const commentId = req.params.id;
             const filter = { commentId: commentId }
             const result = await commentsCollection.find(filter).toArray();
@@ -125,12 +178,11 @@ async function run() {
             const result = await commentsCollection.insertOne(comment);
             res.send(result);
         })
-        // -------------------------------------------WishList----------------------------------------
+// -------------------------------------------WishList----------------------------------------
 
-        app.post('/wishList',  async (req, res) => {
+        app.post('/wishList', async (req, res) => {
             const wishList = req.body;
             const query = { userEmail: wishList.userEmail, blog_id: wishList.blog_id }
-            console.log(query);
             const alreadyExit = await wishListCollection.findOne(query);
             if (alreadyExit) {
                 return res.status(400).send('Already Exist');
@@ -142,9 +194,7 @@ async function run() {
         app.get('/wishList/:email', verifyToken, async (req, res) => {
             const decodedEmail = req.user?.email;
             const email = req.params.email;
-            console.log('decodedEmail: ', decodedEmail);
-            console.log('Email: ', email);
-            if(decodedEmail != email){
+            if (decodedEmail != email) {
                 return res.status(401).send({ message: "unauthorize access" });
             }
             const query = { userEmail: email }
