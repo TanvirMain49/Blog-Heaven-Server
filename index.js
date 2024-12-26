@@ -7,7 +7,10 @@ const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 4000;
 
 const corsOptional = {
-    origin: ['http://localhost:5173'],
+    origin: [
+    'http://localhost:5173',
+    'https://blog-website-7a80f.web.app'
+    ],
     credentials: true
 }
 const app = express();
@@ -47,7 +50,7 @@ async function run() {
         // await client.connect();
         // // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         //jwt webToken
         app.post('/jwt', async (req, res) => {
