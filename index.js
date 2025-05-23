@@ -5,11 +5,14 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 4000;
+const User = require("./User");
+const Blog = require("./blog");
+const { default: mongoose } = require('mongoose');
 
 const corsOptional = {
     origin: [
-    'http://localhost:5173',
-    'https://blog-website-7a80f.web.app'
+        'http://localhost:5173',
+        'https://blog-website-7a80f.web.app'
     ],
     credentials: true
 }
@@ -33,7 +36,14 @@ const verifyToken = async (req, res, next) => {
     })
 }
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kriop.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kriop.mongodb.net/Blogs_Web?retryWrites=true&w=majority&appName=Cluster0`;
+
+mongoose.connect(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(() => console.log('✅ Mongoose connected'))
+    .catch((err) => console.error(err));
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -46,11 +56,6 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        // Connect the client to the server	(optional starting in v4.7)
-        // await client.connect();
-        // // Send a ping to confirm a successful connection
-        // await client.db("admin").command({ ping: 1 });
-        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         //jwt webToken
         app.post('/jwt', async (req, res) => {
@@ -74,6 +79,27 @@ async function run() {
                 .send({ status: true });
         })
 
+        app.post("/users", async (req, res) => {
+            try {
+                const userData = req.body;
+                const newUser = await User.create(userData);
+
+                if (newUser && newUser._id) {
+                    res.status(201).json({
+                        message: "User created successfully",
+                        insertedId: newUser._id,
+                    });
+                } else {
+                    res.status(400).json({ error: "User creation failed" });
+                }
+
+            } catch (err) {
+                console.error(err);
+                res.status(500).json({ error: "Server error occurred" });
+            }
+        });
+
+
 
         // all api collections
         const blogsCollection = client.db('Blogs_Web').collection('Blogs');
@@ -89,25 +115,25 @@ async function run() {
                     $regex: search, $options: 'i'
                 }
             };
-            if (filter ) {
+            if (filter) {
                 query.category = filter;
             }
             const result = await blogsCollection.find(query).toArray();
             res.send(result);
         })
         app.get('/all-blogs-home', async (req, res) => {
-            const result = await blogsCollection.find().limit(6).toArray();
+            const result = await blogsCollection.find().limit(4).toArray();
             res.send(result);
         })
         app.get('/all-blogs-table', async (req, res) => {
             const result = await blogsCollection.aggregate([
                 {
-                    $addFields:{
-                        descriptionLength: {$strLenCP: "$longDescription"}
+                    $addFields: {
+                        descriptionLength: { $strLenCP: "$longDescription" }
                     }
                 },
                 {
-                    $sort:{
+                    $sort: {
                         descriptionLength: -1
                     }
                 },
@@ -125,18 +151,18 @@ async function run() {
         app.get('/all-blogsRecommended', async (req, res) => {
             const result = await blogsCollection.aggregate([
                 {
-                    $addFields:{
-                        descriptionLength: {$strLenCP: '$longDescription'}
+                    $addFields: {
+                        descriptionLength: { $strLenCP: '$longDescription' }
                     }
                 },
                 {
-                    $sort: {descriptionLength: -1}
+                    $sort: { descriptionLength: -1 }
                 },
                 {
-                    $limit : 4
+                    $limit: 4
                 },
                 {
-                    $project:{
+                    $project: {
                         descriptionLength: 0
                     }
                 }
@@ -150,11 +176,21 @@ async function run() {
             const result = await blogsCollection.findOne(query);
             res.send(result);
         })
+
+
         app.post('/blogs', async (req, res) => {
-            const blog = req.body;
-            const result = await blogsCollection.insertOne(blog);
-            res.send(result);
-        })
+            try {
+                const blog = req.body;
+                const result = await Blog.insertOne(blog);
+                res.status(201).json(result);
+            } catch (error) {
+                console.error('Error creating blog:', error);
+                res.status(500).json({ message: 'Failed to create blog', error: error.message });
+            }
+        });
+
+
+
         app.put('/update-blogs/:id', async (req, res) => {
             const id = req.params.id;
             const updateBlog = req.body;
@@ -168,7 +204,7 @@ async function run() {
         })
 
 
-//--------------------------------------For Comment section api---------------------------------
+        //--------------------------------------For Comment section api---------------------------------
         app.get('/blog-Comment/:id', async (req, res) => {
             const commentId = req.params.id;
             const filter = { commentId: commentId }
@@ -182,7 +218,7 @@ async function run() {
             const result = await commentsCollection.insertOne(comment);
             res.send(result);
         })
-// -------------------------------------------WishList----------------------------------------
+        // -------------------------------------------WishList----------------------------------------
 
         app.post('/wishList', async (req, res) => {
             const wishList = req.body;
@@ -192,6 +228,13 @@ async function run() {
                 return res.status(400).send('Already Exist');
             }
             const result = await wishListCollection.insertOne(wishList);
+            res.send(result);
+        })
+
+        app.get('/wishList-loved/:id', async (req, res) => {
+            const cardId = req.params.id;
+            const query = { blog_id: cardId }
+            const result = await wishListCollection.find(query).sort({ _id: -1 }).limit(3).toArray()
             res.send(result);
         })
 
